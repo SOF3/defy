@@ -145,6 +145,7 @@ use syn::spanned::Spanned;
 use syn::{Error, Result};
 
 mod ast;
+mod tests;
 
 /// See crate-level documentation.
 #[proc_macro]

@@ -128,7 +128,7 @@ impl Parse for Match {
         let inner;
         Ok(Self {
             match_: input.parse()?,
-            expr:   input.parse()?,
+            expr:   Box::new(input.call(syn::Expr::parse_without_eager_brace)?),
             braces: syn::braced!(inner in input),
             arms:   {
                 let mut arms = Vec::new();
