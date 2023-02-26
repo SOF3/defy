@@ -218,19 +218,35 @@ impl Parse for Text {
 }
 
 pub struct Node {
-    pub element:  syn::Path,
-    pub args:     NodeArgs,
-    pub braces:   syn::token::Brace,
-    pub children: Nodes,
+    pub element: syn::Path,
+    pub args:    NodeArgs,
+    pub body:    NodeBody,
 }
 impl Parse for Node {
     fn parse(input: ParseStream) -> Result<Self> {
-        let inner;
         Ok(Self {
-            element:  parse_path_without_paren(input)?,
-            args:     input.parse()?,
-            braces:   syn::braced!(inner in input),
-            children: inner.parse()?,
+            element: parse_path_without_paren(input)?,
+            args:    input.parse()?,
+            body:    input.parse()?,
+        })
+    }
+}
+
+pub enum NodeBody {
+    Semi(syn::Token![;]),
+    Braced { braces: syn::token::Brace, children: Nodes },
+}
+impl Parse for NodeBody {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lh = input.lookahead1();
+
+        Ok(if lh.peek(syn::Token![;]) {
+            Self::Semi(input.parse()?)
+        } else if lh.peek(syn::token::Brace) {
+            let inner;
+            Self::Braced { braces: syn::braced!(inner in input), children: inner.parse()? }
+        } else {
+            return Err(lh.error());
         })
     }
 }
@@ -277,7 +293,7 @@ impl Parse for NodeArgs {
                 paren: syn::parenthesized!(inner in input),
                 args:  Punctuated::parse_terminated(&inner)?,
             }
-        } else if lh.peek(syn::token::Brace) {
+        } else if lh.peek(syn::token::Brace) || lh.peek(syn::Token![;]) {
             NodeArgs::None
         } else {
             return Err(lh.error());

@@ -43,6 +43,7 @@
 //!                 }
 //!                 Label::Second(i) => {
 //!                     h3 { +i; }
+//!                     br;
 //!                 }
 //!                 _ => { +"unmatched"; }
 //!             }
@@ -52,34 +53,76 @@
 //! # return vnode
 //! # }
 //!
-//! // Rendering code omitted
 //! # #[tokio::main(flavor = "current_thread")]
 //! # async fn main() {
 //! #     let vnode_html = yew::ServerRenderer::<Test>::new().render().await;
 //! #     println!("{vnode_html}");
+//! # /*
+//! let vnode_html = /* omitted implementation rendering vnode into HTML string */;
+//! # */
 //! assert_eq!(
-//!     vnode_html.as_str().replace(['\n', ' '], ""),
-//!     r#"
-//! #     <!--<[rust_out::Test]>-->
+//!     canonicalize(vnode_html.as_str()),
+//!     canonicalize(
+//!         r#"
+//! #         <!--<[rust_out::Test]>-->
 //!         <h1>Hello world</h1>
 //!         <ul>
 //!             unmatched
 //!             <li data-length="3">bar</li>
 //!             <h3>2</h3>
+//!             <br> <!-- we actually emitted <br/> here, but yew processed it into <br> -->
 //!         </ul>
-//! #     <!--</[rust_out::Test]>-->
-//!     "#
-//!     .replace(['\n', ' '], "")
+//! #         <!--</[rust_out::Test]>-->
+//!         "#
+//!     )
 //! );
 //! # }
+//!
+//! fn canonicalize(string: &str) -> String {
+//!     // Omitted implementation: strips whitespaces and comments
+//! #     let mut output = string.replace(['\n', ' '], "");
+//! #     while let Some(pos) = output.find("<!--") {
+//! #         if let Some(len) = output[pos..].find("-->") {
+//! #             output = format!("{}{}", &output[..pos], &output[(pos+len+3)..]);
+//! #         }
+//! #     }
+//! #     output
+//! }
 //! ```
 //!
 //! # Reference
-//! ## Normal HTML tag
-//! `foo(a = b, c = d) { ... }` becomes `<foo a={b} c={d}> ... </foo>`
+//! ## HTML tag without children
+//! ```
+//! # /*
+//! foo(a = b, c = d);
+//! # */
+//! ```
+//! becomes
+//! ```html
+//! <foo a={b} c={d} />
+//! ```
+//!
+//! ## HTML tag with children
+//! ```
+//! # /*
+//! foo(a = b, c = d) { ... }
+//! # */
+//! ```
+//! becomes
+//! ```html
+//! <foo a={b} c={d}> ... </foo>
+//! ```
 //!
 //! # Text values
-//! `+ expr;` becomes `{ expr }`
+//! ```
+//! # /*
+//! + expr;
+//! # */
+//! ```
+//! becomes
+//! ```text
+//! `{ expr }`
+//! ```
 //!
 //! # Local variables
 //! Local variables can be defined in the form of normal `let` statements.
@@ -148,7 +191,7 @@ fn emit(macro_path: &syn::Path, span: Span, nodes: ast::Nodes) -> Result<TokenSt
     }
 
     let node_html: Vec<_> =
-        stmts.map(|stmt| node_to_html(macro_path, stmt)).collect::<Result<_>>()?;
+        stmts.map(|stmt| stmt_to_html(macro_path, stmt)).collect::<Result<_>>()?;
     Ok(quote_spanned! { span =>
         #(#locals)*
         #macro_path! {
@@ -159,7 +202,7 @@ fn emit(macro_path: &syn::Path, span: Span, nodes: ast::Nodes) -> Result<TokenSt
     })
 }
 
-fn node_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> {
+fn stmt_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> {
     Ok(match stmt {
         ast::Stmt::If(ast::If {
             if_,
@@ -223,13 +266,20 @@ fn node_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> 
                 { #expr }
             }
         }
-        ast::Stmt::Node(ast::Node { element, args, braces, children }) => {
+        ast::Stmt::Node(ast::Node { element, args, body }) => {
             let args = args_to_html(args)?;
-            let children = emit(macro_path, braces.span, children)?;
-            quote_spanned! { braces.span =>
-                <#element #args>
-                    { #children }
-                </#element>
+            match body {
+                ast::NodeBody::Semi(semi) => quote_spanned! { semi.span =>
+                    <#element #args />
+                },
+                ast::NodeBody::Braced { braces, children } => {
+                    let children = emit(macro_path, braces.span, children)?;
+                    quote_spanned! { braces.span =>
+                        <#element #args>
+                            { #children }
+                        </#element>
+                    }
+                }
             }
         }
     })
