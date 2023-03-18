@@ -1,6 +1,6 @@
 [package]
 name = "defy"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "Replacement for the yew::html! macro with more Rust-idiomatic, editor-friendly syntax."
 authors = ["SOFe <sofe2038@gmail.com>"]

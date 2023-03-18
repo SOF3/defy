@@ -14,3 +14,10 @@ fn test_match() {
         }
     }).unwrap();
 }
+
+#[test]
+fn test_keyword() {
+    let _: ast::Input = syn::parse2(quote! {
+        input(type = "checkbox");
+    }).unwrap();
+}

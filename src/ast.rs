@@ -1,3 +1,4 @@
+use syn::ext::IdentExt;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::Result;
@@ -308,7 +309,7 @@ pub struct NodeArg {
 impl Parse for NodeArg {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
-            ident: Punctuated::parse_separated_nonempty(input)?,
+            ident: Punctuated::parse_separated_nonempty_with(input, syn::Ident::parse_any)?,
             value: if input.peek(syn::Token![=]) {
                 Some((input.parse()?, input.parse()?))
             } else {
