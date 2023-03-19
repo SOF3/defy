@@ -153,7 +153,7 @@ impl Parse for Arm {
     fn parse(input: ParseStream) -> Result<Self> {
         let inner;
         Ok(Self {
-            pat:       input.parse()?,
+            pat:       syn::Pat::parse_multi_with_leading_vert(input)?,
             guard:     if input.peek(syn::Token![if]) {
                 Some((input.parse()?, input.parse()?))
             } else {
@@ -179,7 +179,7 @@ impl Parse for For {
         let inner;
         Ok(Self {
             for_:   input.parse()?,
-            pat:    input.parse()?,
+            pat:    Box::new(syn::Pat::parse_multi_with_leading_vert(input)?),
             in_:    input.parse()?,
             iter:   Box::new(input.call(syn::Expr::parse_without_eager_brace)?),
             braces: syn::braced!(inner in input),
@@ -199,7 +199,7 @@ impl Parse for Let {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             let_: input.parse()?,
-            pat:  input.parse()?,
+            pat:  Box::new(syn::Pat::parse_multi_with_leading_vert(input)?),
             eq:   input.parse()?,
             expr: input.parse()?,
             semi: input.parse()?,
