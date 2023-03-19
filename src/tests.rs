@@ -8,16 +8,18 @@ use crate::ast;
 fn test_match() {
     let _: ast::Input = syn::parse2(quote! {
         match route {
-            Route::List => {
+            Route::List | Route::Post => {
                 pages::comp;
             }
         }
-    }).unwrap();
+    })
+    .unwrap();
 }
 
 #[test]
 fn test_keyword() {
     let _: ast::Input = syn::parse2(quote! {
         input(type = "checkbox");
-    }).unwrap();
+    })
+    .unwrap();
 }

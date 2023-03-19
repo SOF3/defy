@@ -212,12 +212,12 @@ fn stmt_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> 
             body: if_body,
             else_: Some(ast::Else { else_, braces: else_braces, body: else_body }),
         }) => {
-            let if_body = emit(macro_path, if_braces.span, if_body)?;
+            let if_body = emit(macro_path, if_braces.span.join(), if_body)?;
             let if_part = quote_spanned! { if_braces.span =>
                 #if_ #expr { #if_body }
             };
 
-            let else_body = emit(macro_path, else_braces.span, else_body)?;
+            let else_body = emit(macro_path, else_braces.span.join(), else_body)?;
             let else_part = quote_spanned! { else_braces.span =>
                 #else_ { #else_body }
             };
@@ -227,7 +227,7 @@ fn stmt_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> 
             }
         }
         ast::Stmt::If(ast::If { if_, expr, braces, body, else_: None }) => {
-            let body = emit(macro_path, braces.span, body)?;
+            let body = emit(macro_path, braces.span.join(), body)?;
             quote_spanned! { if_.span() =>
                 { #if_ #expr { #body } else { #macro_path! {} } }
             }
@@ -237,7 +237,7 @@ fn stmt_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> 
                 .into_iter()
                 .map(|ast::Arm { pat, guard, fat_arrow, braces, body }| {
                     let guard = guard.map(|(if_, expr)| quote!(#if_ #expr));
-                    let body = emit(macro_path, braces.span, body)?;
+                    let body = emit(macro_path, braces.span.join(), body)?;
                     Ok(quote_spanned! { braces.span =>
                         #pat #guard #fat_arrow { #body }
                     })
@@ -251,7 +251,7 @@ fn stmt_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> 
             }
         }
         ast::Stmt::For(ast::For { for_, pat, iter, in_, braces, body }) => {
-            let body = emit(macro_path, braces.span, body)?;
+            let body = emit(macro_path, braces.span.join(), body)?;
             quote_spanned! { in_.span() =>
                 { #for_ ::std::iter::IntoIterator::into_iter(#iter).map(|#pat| { #body }) }
             }
@@ -274,7 +274,7 @@ fn stmt_to_html(macro_path: &syn::Path, stmt: ast::Stmt) -> Result<TokenStream> 
                     <#element #args />
                 },
                 ast::NodeBody::Braced { braces, children } => {
-                    let children = emit(macro_path, braces.span, children)?;
+                    let children = emit(macro_path, braces.span.join(), children)?;
                     quote_spanned! { braces.span =>
                         <#element #args>
                             { #children }
