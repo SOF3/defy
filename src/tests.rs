@@ -5,6 +5,18 @@ use quote::quote;
 use crate::ast;
 
 #[test]
+fn test_if_else() {
+    let _: ast::Input = syn::parse2(quote! {
+        if foo {
+            + "";
+        } else {
+            + "";
+        }
+    })
+    .unwrap();
+}
+
+#[test]
 fn test_match() {
     let _: ast::Input = syn::parse2(quote! {
         match route {

@@ -95,7 +95,7 @@ impl Parse for If {
         let inner;
         Ok(Self {
             if_:    input.parse()?,
-            expr:   Box::new(input.parse()?),
+            expr:   Box::new(input.call(syn::Expr::parse_without_eager_brace)?),
             braces: syn::braced!(inner in input),
             body:   inner.parse()?,
             else_:  if input.peek(syn::Token![else]) { Some(input.parse()?) } else { None },
