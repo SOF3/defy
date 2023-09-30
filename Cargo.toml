@@ -18,4 +18,4 @@ syn = { version = "2.0.2", features = ["full"] }
 
 [dev-dependencies]
 tokio = { version = "1.25.0", features = ["macros", "rt"] }
-yew = { version = "0.20.0", features = ["ssr"] }
+yew = { version = "0.21.0", features = ["ssr"] }
